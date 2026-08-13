@@ -1,0 +1,29 @@
+appId: com.notesapp.desktop
+productName: NotesApp
+directories:
+  output: dist
+  buildResources: build
+files:
+  - out/**/*
+  - resources/tesseract/**/*
+  - resources/icon.png
+extraResources:
+  - from: resources/tesseract
+    to: tesseract
+    filter:
+      - '**/*'
+asarUnpack:
+  - resources/tesseract/**/*
+  - node_modules/sql.js/**/*
+win:
+  icon: resources/icon.ico
+  target:
+    - nsis
+  artifactName: ${productName}-${version}-setup.${ext}
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+electronDownload:
+  cache: .electron-cache
+npmRebuild: true
