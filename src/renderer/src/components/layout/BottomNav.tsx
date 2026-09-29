@@ -20,7 +20,7 @@ export function BottomNav(): JSX.Element {
 
   return (
     <nav className="glass fixed inset-x-0 bottom-0 z-40 border-t border-app-border">
-      <div className="mx-auto flex max-w-md items-center justify-around py-2">
+      <div className="mx-auto flex max-w-none items-center justify-around py-2">
         {NAV.map(({ path, label, icon: Icon }) => {
           const isActive = active(path)
           return (

@@ -415,6 +415,19 @@ export function unlockPermanently(id: string, secret: string): Note | null {
   return getNote(id)
 }
 
+// Recovery path used when the note's password/PIN is forgotten. The content
+// is encrypted with the user's secret, so it cannot be decrypted here — the
+// lock is removed and the (unreadable) encrypted content is erased.
+export function resetNoteLock(id: string): Note | null {
+  const db = getDb()
+  const note = getNote(id)
+  if (!note || !note.isLocked) return null
+  db.prepare(
+    'UPDATE notes SET content = ?, plain_text = ?, search_text = ?, is_locked = 0, lock_type = NULL, enc_key_salt = NULL, updated_at = ? WHERE id = ?'
+  ).run('', '', '', Date.now(), id)
+  return getNote(id)
+}
+
 /* ----------------------------- collections ----------------------------- */
 
 interface CollectionRow {

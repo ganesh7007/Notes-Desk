@@ -18,6 +18,8 @@ import { createLowlight } from 'lowlight'
 import { common } from 'lowlight'
 
 import { Extension, type ChainedCommands, type RawCommands } from '@tiptap/core'
+import { Plugin, PluginKey } from '@tiptap/pm/state'
+import { RendererImageExtension } from './RendererImage'
 
 export const lowlight = createLowlight(common)
 
@@ -50,22 +52,40 @@ export function buildExtensions(_fontFamily: string, _fontSize: number): unknown
       lowlight,
       defaultLanguage: 'plain'
     }),
-    ImageExtension,
+    RendererImageExtension,
+    TrailingParagraphExtension,
     FontFamilyExtension,
     FontSizeExtension
   ]
 }
 
-/* Custom Image extension with a shared marker — uses the Image core under the hood. */
-import Image from '@tiptap/extension-image'
-
-export const ImageExtension = Image.extend({
-  addAttributes() {
-    return {
-      ...this.parent?.(),
-      width: { default: null, parseHTML: (el) => el.getAttribute('width'), renderHTML: (attrs) => (attrs.width ? { width: attrs.width } : {}) },
-      alt: { default: '', parseHTML: (el) => el.getAttribute('alt'), renderHTML: (attrs) => ({ alt: attrs.alt }) }
-    }
+/**
+ * Keeps an empty paragraph at the end of a document whose last block is a void
+ * node (an image or a divider).
+ *
+ * Without it, a note that ends with an image has nowhere to put the caret — the
+ * image cannot hold text — so inserting an image and then typing silently did
+ * nothing. With this plugin there is always a line to type on after the image.
+ */
+export const TrailingParagraphExtension = Extension.create({
+  name: 'trailingParagraph',
+  addProseMirrorPlugins() {
+    return [
+      new Plugin({
+        key: new PluginKey('trailingParagraph'),
+        appendTransaction: (transactions, _oldState, newState) => {
+          if (!transactions.some((tr) => tr.docChanged)) return null
+          const last = newState.doc.lastChild
+          // Text blocks (paragraph, heading, code block…) can already hold the caret.
+          if (!last || !last.isLeaf || last.isTextblock) return null
+          const paragraph = newState.schema.nodes.paragraph
+          if (!paragraph) return null
+          const tr = newState.tr.insert(newState.doc.content.size, paragraph.create())
+          tr.setMeta('addToHistory', false)
+          return tr
+        }
+      })
+    ]
   }
 })
 

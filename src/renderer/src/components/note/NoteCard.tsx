@@ -2,8 +2,8 @@ import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   Archive,
+  ArrowRight,
   Copy,
-  FolderOpen,
   Image as ImageIcon,
   Lock,
   MoreVertical,
@@ -31,7 +31,7 @@ interface NoteCardProps {
   compact?: boolean
 }
 
-export function NoteCard({ note, view, trashed, onChanged, compact }: NoteCardProps): JSX.Element {
+export function NoteCard({ note, view, trashed, onChanged }: NoteCardProps): JSX.Element {
   const navigate = useNavigate()
   const toast = useAppStore((s) => s.toast)
   const refreshCollections = useAppStore((s) => s.refreshCollections)
@@ -51,6 +51,12 @@ export function NoteCard({ note, view, trashed, onChanged, compact }: NoteCardPr
   const refresh = (): void => {
     onChanged?.()
     refreshCollections()
+  }
+
+  const toggleFavorite = async (): Promise<void> => {
+    await window.api.notes.setFavorite(note.id, !note.isFavorite)
+    toast(note.isFavorite ? 'Removed from favorites' : 'Added to favorites')
+    refresh()
   }
 
   const items: MenuItem[] = trashed
@@ -131,24 +137,10 @@ export function NoteCard({ note, view, trashed, onChanged, compact }: NoteCardPr
 
   const renderIndicators = (): JSX.Element => (
     <div className="flex items-center gap-1.5">
-      {note.isPinned && <Pin size={13} className="fill-amber-400 text-amber-400" />}
-      {note.isFavorite && <Star size={13} className="fill-yellow-400 text-yellow-400" />}
-      {note.isLocked && <Lock size={13} className="text-app-accent" />}
-      {note.hasImages && <ImageIcon size={13} className="text-app-text-muted" />}
-    </div>
-  )
-
-  const renderFooter = (): JSX.Element => (
-    <div className="mt-auto flex items-center justify-between gap-2 pt-2 text-[11px] text-app-text-muted">
-      <span className="truncate">{formatRelative(note.updatedAt)}</span>
-      <span className="flex items-center gap-1 truncate">
-        {note.collectionName && (
-          <>
-            <FolderOpen size={11} className="shrink-0" />
-            <span className="truncate">{note.collectionName}</span>
-          </>
-        )}
-      </span>
+      {note.isPinned && <Pin size={12} className="fill-amber-400 text-amber-400" />}
+      {note.isFavorite && <Star size={12} className="fill-yellow-400 text-yellow-400" />}
+      {note.isLocked && <Lock size={12} className="text-app-accent" />}
+      {note.hasImages && <ImageIcon size={12} className="text-app-text-muted" />}
     </div>
   )
 
@@ -166,13 +158,20 @@ export function NoteCard({ note, view, trashed, onChanged, compact }: NoteCardPr
           <div className="mt-0.5 truncate text-xs text-app-text-muted">{preview}</div>
         </div>
         <div className="hidden shrink-0 text-[11px] text-app-text-muted sm:block">{formatRelative(note.updatedAt)}</div>
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            open()
+          }}
+          title="Open note"
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-app-text-muted transition hover:bg-app-accent/15 hover:text-app-accent"
+        >
+          <ArrowRight size={15} />
+        </button>
         <Menu trigger={<MoreVerticalBtn />} items={items} />
       </div>
     )
   }
-
-  const isCard = view === 'card'
-  const bgStyle = { background: 'linear-gradient(180deg, var(--note-tint), transparent 70%)' }
 
   return (
     <motion.div
@@ -182,50 +181,88 @@ export function NoteCard({ note, view, trashed, onChanged, compact }: NoteCardPr
       exit={{ opacity: 0, scale: 0.96 }}
       transition={{ duration: 0.16 }}
       onClick={open}
-      className={cx(
-        'tip-card group relative flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-app-border bg-app-surface p-4',
-        `note-color-${note.color}`,
-        isCard && 'min-h-[180px]',
-        !isCard && 'min-h-[150px]'
-      )}
-      style={bgStyle}
+      className="pcard group relative flex cursor-pointer flex-col"
       onContextMenu={(e) => {
         e.preventDefault()
       }}
     >
-      {compact && <div className="pointer-events-none absolute inset-0 rounded-2xl shadow-inner" />}
-      <div className="flex items-start justify-between gap-2">
-        <h3 className={cx('line-clamp-2 font-semibold leading-snug', isCard ? 'text-lg' : 'text-[15px]')}>
-          {note.title || 'Untitled note'}
-        </h3>
-        <div className="flex shrink-0 items-center gap-1">
-          {renderIndicators()}
-          <div onClick={(e) => e.stopPropagation()}>
-            <Menu trigger={<MoreVerticalBtn small />} items={items} />
+      {/* the sheet itself — see .pcard .pcard-paper in index.css for why the
+          paper is a separate layer from the curl shadows on .pcard */}
+      <div className="pcard-paper">
+        <span className="pcard-margin" aria-hidden />
+
+        <div className="absolute right-2 top-2 z-10" onClick={(e) => e.stopPropagation()}>
+          <Menu trigger={<DismissBtn />} items={items} />
+        </div>
+
+        <div className="pcard-body">
+          <div className="pcard-title">
+            <span className="pcard-title-text">{note.title || 'Untitled note'}</span>
+            {(note.isPinned || note.isFavorite || note.isLocked || note.hasImages) && (
+              <span className="pcard-flags">
+                {note.isPinned && <Pin size={11} className="fill-amber-500 text-amber-600" />}
+                {note.isFavorite && <Star size={11} className="fill-yellow-500 text-yellow-600" />}
+                {note.isLocked && <Lock size={11} />}
+                {note.hasImages && <ImageIcon size={11} />}
+              </span>
+            )}
+          </div>
+          <p className="pcard-text">{preview}</p>
+        </div>
+
+        {note.tags.length > 0 && (
+          <div className="pcard-tags">
+            {note.tags.slice(0, 3).map((t) => (
+              <span key={t} className="pcard-tag">
+                #{t}
+              </span>
+            ))}
+          </div>
+        )}
+
+        <div className="pcard-foot">
+          <div className="pcard-meta">
+            <span className="pcard-meta-text">{note.collectionName || 'Unfiled'}</span>
+            <span className="pcard-meta-sep">•</span>
+            <span className="pcard-meta-text">{formatRelative(note.updatedAt)}</span>
+            {note.checklistTotal > 0 && (
+              <>
+                <span className="pcard-meta-sep">•</span>
+                <span className="pcard-meta-text">
+                  {note.checklistDone}/{note.checklistTotal}
+                </span>
+              </>
+            )}
+          </div>
+
+          <div className="pcard-tools">
+            {!trashed && (
+              <button
+                className={cx('pcard-tool', note.isFavorite && 'is-on')}
+                title={note.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  void toggleFavorite()
+                }}
+              >
+                <Star size={13} className={note.isFavorite ? 'fill-current' : undefined} />
+              </button>
+            )}
+            {/* small arrow: go into the note */}
+            <button
+              className="pcard-go"
+              title="Open note"
+              aria-label="Open note"
+              onClick={(e) => {
+                e.stopPropagation()
+                open()
+              }}
+            >
+              <ArrowRight size={15} />
+            </button>
           </div>
         </div>
       </div>
-      {note.checklistTotal > 0 && (
-        <div className="mt-2 flex items-center gap-2">
-          <div className="progress-bar flex-1">
-            <span style={{ width: `${(note.checklistDone / note.checklistTotal) * 100}%` }} />
-          </div>
-          <span className="text-[10px] text-app-text-muted">
-            {Math.round((note.checklistDone / note.checklistTotal) * 100)}%
-          </span>
-        </div>
-      )}
-      <p className="mt-2 line-clamp-3 text-[13px] leading-relaxed text-app-text-muted">{preview}</p>
-      {note.tags.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-1">
-          {note.tags.slice(0, 3).map((t) => (
-            <span key={t} className="rounded-md bg-app-accent/12 px-1.5 py-0.5 text-[10px] text-app-accent">
-              #{t}
-            </span>
-          ))}
-        </div>
-      )}
-      {renderFooter()}
 
       <ConfirmDialog
         open={confirmDelete}
@@ -266,6 +303,14 @@ function MoreVerticalBtn({ small }: { small?: boolean }): JSX.Element {
       )}
     >
       <MoreVertical size={16} />
+    </button>
+  )
+}
+
+function DismissBtn(): JSX.Element {
+  return (
+    <button type="button" className="pcard-dismiss" title="Note menu">
+      ×
     </button>
   )
 }

@@ -1,7 +1,7 @@
 import { app, BrowserWindow, dialog, Menu, protocol, shell } from 'electron'
 import path from 'node:path'
 import fs from 'node:fs'
-import { dirs, getDb, appDataDir, warmUpDatabase } from './db'
+import { dirs, initDatabase, appDataDir } from './db'
 import { registerIpcHandlers } from './ipc'
 import { autoBackupIfDue } from './backup'
 import { scheduleAllReminders } from './reminders'
@@ -43,7 +43,7 @@ function handleFatalError(tag: string, err: unknown): void {
   try {
     dialog.showErrorBox(
       'NotesApp failed to start',
-      `NotesApp ran into an unexpected problem while starting, so the window could not be opened.\n\n` +
+      `NotesApp ran into an unexpected problem while starting, so it could not open properly.\n\n` +
         `Your notes and data are safe — nothing has been changed or deleted.\n\n` +
         `Error details:\n${details}\n\n` +
         `Details were written to:\n${STARTUP_LOG_FILE}`
@@ -76,7 +76,9 @@ function createWindow(): BrowserWindow {
     height: 820,
     minWidth: 940,
     minHeight: 640,
-    show: false,
+    // Shown straight away so the app opens instantly; the renderer paints its
+    // splash over this background while the bundle loads.
+    show: true,
     backgroundColor: '#0b0f17',
     title: 'NotesApp',
     icon: path.join(__dirname, '../../resources/icon.png'),
@@ -92,7 +94,7 @@ function createWindow(): BrowserWindow {
   })
 
   win.on('ready-to-show', () => {
-    win.show()
+    if (!win.isVisible()) win.show()
   })
 
   win.on('maximize', () => win.webContents.send('window:maximized', true))
@@ -166,9 +168,10 @@ if (!gotLock) {
   app.whenReady().then(async () => {
     try {
       app.setAppUserModelId('com.notesapp.desktop')
-      await warmUpDatabase()
-      getDb()
       registerMediaProtocol()
+      // Handlers are registered up front but each one waits for the database;
+      // that lets the window load in parallel with the sql.js warm-up instead of
+      // queueing everything behind it (which is what made startup feel slow).
       registerIpcHandlers(() => mainWindow)
       mainWindow = createWindow()
       Menu.setApplicationMenu(buildAppMenu())
@@ -178,14 +181,20 @@ if (!gotLock) {
         `file://${path.join(__dirname, '../renderer/index.html')}`
       mainWindow.loadURL(loadUrl)
 
-      scheduleAllReminders()
-      autoBackupIfDue()
-      setInterval(() => autoBackupIfDue(), 30 * 60 * 1000)
+      // Open the database in the background; the renderer shows its splash until
+      // the first IPC calls resolve.
+      void initDatabase()
+        .then(() => {
+          scheduleAllReminders()
+          autoBackupIfDue()
+          setInterval(() => autoBackupIfDue(), 30 * 60 * 1000)
+        })
+        .catch((err) => handleFatalError('Startup failed', err))
 
       app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) {
           mainWindow = createWindow()
-          mainWindow.loadURL(loadUrl)
+          void mainWindow.loadURL(loadUrl)
         }
       })
     } catch (err) {

@@ -3,10 +3,12 @@ import { createRequire } from 'node:module'
 import type { Archiver } from 'archiver'
 
 const requireFn = createRequire(__filename)
-const archiver = requireFn('archiver') as (
-  format: string,
-  options?: Record<string, unknown>
-) => Archiver
+
+// archiver pulls in a sizeable dependency tree — load it only when a .docx is
+// actually generated instead of on every app start.
+function loadArchiver(): (format: string, options?: Record<string, unknown>) => Archiver {
+  return requireFn('archiver') as (format: string, options?: Record<string, unknown>) => Archiver
+}
 
 function xmlEscape(text: string): string {
   return text
@@ -60,7 +62,7 @@ ${body}
 </w:document>`
 
     const chunks: Buffer[] = []
-    const archive = archiver('zip', { zlib: { level: 9 } })
+    const archive = loadArchiver()('zip', { zlib: { level: 9 } })
     archive.on('error', reject)
     archive.on('data', (chunk: Buffer) => chunks.push(chunk))
     archive.on('end', () => resolve(Buffer.concat(chunks)))

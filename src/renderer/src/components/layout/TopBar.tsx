@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import {
   Archive,
-  ArchiveRestore,
   BarChart3,
   BookMarked,
   CalendarDays,
@@ -11,17 +10,14 @@ import {
   FolderHeart,
   Home,
   Lock,
-  Moon,
   Pin,
-  Search,
   Settings as SettingsIcon,
   Star,
-  Sun,
   Tags as TagsIcon,
   Trash2
 } from 'lucide-react'
 import { Menu, type MenuItem } from '@/components/ui/Menu'
-import { useAppStore } from '@/store/appStore'
+import { AppLogo } from '@/components/layout/AppLogo'
 
 const TITLES: Record<string, string> = {
   '/': 'Home',
@@ -45,8 +41,6 @@ export function TopBar(): JSX.Element {
   const location = useLocation()
   const [params] = useState(() => new URLSearchParams(location.search))
   const [search, setSearch] = useState(() => params.get('search') ?? '')
-  const settings = useAppStore((s) => s.settings)
-  const updateSettings = useAppStore((s) => s.updateSettings)
   const searchRef = useRef<HTMLInputElement>(null)
 
   const isHome = location.pathname === '/'
@@ -90,17 +84,12 @@ export function TopBar(): JSX.Element {
 
   return (
     <header className="glass z-40 border-b border-app-border">
-      <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-5">
+      <div className="mx-auto flex h-14 max-w-none items-center gap-3 px-5">
         <button
           onClick={() => navigate('/')}
-          className="flex items-center gap-2 text-lg font-bold tracking-tight"
+          className="flex shrink-0 items-center gap-2 text-lg font-bold tracking-tight"
         >
-          <span
-            className="flex h-8 w-8 items-center justify-center rounded-xl text-sm text-white"
-            style={{ background: 'linear-gradient(135deg, var(--app-accent), #22d3ee)' }}
-          >
-            N
-          </span>
+          <AppLogo size={30} rounded="rounded-xl" />
           <span className="hidden sm:inline">
             Notes<span style={{ color: 'var(--app-accent)' }}>App</span>
           </span>
@@ -108,10 +97,20 @@ export function TopBar(): JSX.Element {
         <span className="hidden text-sm text-app-text-muted md:inline">/</span>
         <span className="hidden truncate text-sm font-medium text-app-text-muted md:block">{title}</span>
 
-        <div className="relative mx-auto w-full max-w-md">
-          <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-app-text-muted" />
+        <form
+          className="usearch mx-auto w-full max-w-xl"
+          onSubmit={(e) => e.preventDefault()}
+        >
+          <button type="button" className="usearch-btn" title="Search" onClick={() => searchRef.current?.focus()}>
+            <svg width="17" height="16" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="search">
+              <path d="M7.667 12.667A5.333 5.333 0 107.667 2a5.333 5.333 0 000 10.667zM14.334 14l-2.9-2.9" stroke="currentColor" strokeWidth="1.333" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
           <input
             ref={searchRef}
+            className="usearch-input"
+            placeholder="Search notes, tags, collections…"
+            type="text"
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
             onKeyDown={(e) => {
@@ -121,33 +120,24 @@ export function TopBar(): JSX.Element {
                 searchRef.current?.blur()
               }
             }}
-            placeholder="Search notes, tags, collections…"
-            className="input-base !rounded-full !py-2 pl-9 pr-8 text-[13px]"
           />
-          {search && (
-            <button
-              onClick={() => {
-                setSearch('')
-                onSearchChange('')
-              }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-app-text-muted hover:text-app-text"
-            >
-              <ArchiveRestore size={14} />
-            </button>
-          )}
-        </div>
-
-        <div className="flex items-center gap-1.5">
           <button
+            type="button"
+            className="usearch-reset"
+            title="Clear search"
             onClick={() => {
-              const theme = settings?.theme === 'dark' ? 'light' : settings?.theme === 'light' ? 'amoled' : 'dark'
-              void updateSettings({ theme })
+              setSearch('')
+              onSearchChange('')
+              searchRef.current?.focus()
             }}
-            title="Toggle theme"
-            className="flex h-9 w-9 items-center justify-center rounded-xl text-app-text-muted transition hover:bg-app-surface-2 hover:text-app-text"
           >
-            {settings?.theme === 'light' ? <Sun size={17} /> : <Moon size={17} />}
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
           </button>
+        </form>
+
+        <div className="flex shrink-0 items-center gap-1.5">
           <button
             onClick={() => navigate('/settings')}
             title="Settings"

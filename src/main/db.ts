@@ -53,6 +53,8 @@ interface SqlJsPreparedDb {
   exec(sql: string): unknown
   export(): Uint8Array
   close(): void
+  /** Rows changed by the statement that ran last (sql.js wraps sqlite3_changes). */
+  getRowsModified?(): number
 }
 
 export interface SqlJsModule {
@@ -91,7 +93,8 @@ function toSqlValue(p: unknown): SqlValue {
 }
 
 export interface Stmt {
-  run(...params: unknown[]): void
+  /** Returns the number of rows the statement actually changed (0 = no-op). */
+  run(...params: unknown[]): number
   get(...params: unknown[]): unknown
   all(...params: unknown[]): unknown[]
 }
@@ -109,15 +112,21 @@ export class SyncDatabase {
     // Each call prepares a fresh statement so a returned Stmt can be reused
     // safely (e.g. inside loops) — sql.js throws "Statement closed" if a
     // freed statement is bound again.
-    const run = (...params: unknown[]): void => {
+    const run = (...params: unknown[]): number => {
       const stmt = this.stmt.prepare(sql)
+      let modified = 1
       try {
         stmt.bind(norm(params))
         stmt.step()
+        modified = this.stmt.getRowsModified?.() ?? 1
       } finally {
         stmt.free()
       }
-      this.persistSoon()
+      // Only schedule a disk write when the statement actually changed something.
+      // Startup-only no-ops (INSERT OR IGNORE for settings that already exist)
+      // must not rewrite the whole database file on every launch.
+      if (modified > 0) this.persistSoon()
+      return modified
     }
     const get = (...params: unknown[]): unknown => {
       const stmt = this.stmt.prepare(sql)
@@ -225,6 +234,12 @@ export class SyncDatabase {
 
 let db: SyncDatabase | null = null
 
+/**
+ * Opens the database, running pending migrations and seeding defaults.
+ *
+ * Startup no longer waits for this before opening a window — see
+ * {@link initDatabase} / {@link whenDbReady}.
+ */
 export function getDb(): SyncDatabase {
   if (db) return db
   const data = fs.existsSync(DB_PATH) ? new Uint8Array(fs.readFileSync(DB_PATH)) : null
@@ -313,13 +328,17 @@ const MIGRATIONS: string[] = [
 
 function migrate(): void {
   const dbc = db!
-  let current = dbc.userVersion
+  const current = dbc.userVersion
+  let applied = 0
   for (let i = current; i < MIGRATIONS.length; i++) {
     dbc.exec(MIGRATIONS[i])
-    current++
-    dbc.userVersion = current
+    applied++
   }
-  dbc.persistNow()
+  // Skip the (expensive) full-file write when the schema is already up to date.
+  if (applied > 0) {
+    dbc.userVersion = current + applied
+    dbc.persistNow()
+  }
 }
 
 export const DEFAULT_SETTINGS: Record<string, string> = {
@@ -347,10 +366,35 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
 function seedSettings(): void {
   const dbc = db!
   const insert = dbc.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)')
+  let inserted = 0
   for (const [key, value] of Object.entries(DEFAULT_SETTINGS)) {
-    insert.run(key, value)
+    inserted += insert.run(key, value)
   }
-  dbc.persistNow()
+  // Only touch the database file when a default was actually missing.
+  if (inserted > 0) dbc.persistNow()
+}
+
+let initPromise: Promise<void> | null = null
+
+/**
+ * Warms sql.js (WASM) and opens the database. Safe to call repeatedly — the
+ * work happens once and every caller shares the same promise.
+ */
+export function initDatabase(): Promise<void> {
+  if (!initPromise) {
+    initPromise = warmUpDatabase().then(() => {
+      getDb()
+    })
+  }
+  return initPromise
+}
+
+/**
+ * Resolves once the database is open and migrated. IPC handlers await this so
+ * the window can be shown immediately while the database warms up in parallel.
+ */
+export function whenDbReady(): Promise<void> {
+  return initDatabase()
 }
 
 export function closeDb(): void {

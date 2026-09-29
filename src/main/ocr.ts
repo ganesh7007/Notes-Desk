@@ -1,8 +1,17 @@
-import { createWorker } from 'tesseract.js'
 import fs from 'node:fs'
 import path from 'node:path'
 import https from 'node:https'
+import { createRequire } from 'node:module'
+import type { createWorker as CreateWorker } from 'tesseract.js'
 import { dirs } from './db'
+
+const requireFn = createRequire(__filename)
+
+// tesseract.js is only needed when the user actually runs OCR. Loading it here
+// (instead of at module scope) keeps ~200 KB of JS out of the startup path.
+function loadCreateWorker(): typeof CreateWorker {
+  return (requireFn('tesseract.js') as { createWorker: typeof CreateWorker }).createWorker
+}
 
 export const OCR_LANGS = ['eng', 'fra', 'deu', 'spa', 'ita', 'por', 'rus', 'hin', 'ara', 'jpn', 'kor', 'chi_sim']
 
@@ -112,6 +121,7 @@ export async function extractTextFromImage(
     )
   }
   const paths = resolveTesseractPaths()
+  const createWorker = loadCreateWorker()
   const worker = await createWorker(lang, 1, {
     workerPath: paths.workerPath,
     corePath: paths.corePath,

@@ -1,3 +1,6 @@
+/** autosave value that means "save instantly as you type" (short debounce). */
+export const INSTANT_AUTOSAVE = 0.5
+
 export type NoteColor =
   | 'default'
   | 'red'

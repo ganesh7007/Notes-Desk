@@ -15,6 +15,8 @@ import { useAppStore } from '@/store/appStore'
 import { cx } from '@/lib/utils'
 import { SegmentedControl } from '@/components/ui/SegmentedControl'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { AppLogo } from '@/components/layout/AppLogo'
+import { INSTANT_AUTOSAVE } from '@shared/types'
 
 const ACCENTS = ['#8b5cf6', '#3b82f6', '#22c55e', '#f97316', '#ef4444', '#ec4899', '#06b6d4', '#eab308', '#14b8a6', '#f43f5e']
 const FONTS = [
@@ -145,17 +147,32 @@ export function SettingsPage(): JSX.Element {
                 className="w-48 accent-[var(--app-accent)]"
               />
             </Row>
-            <Row label="Autosave" desc="How often notes are saved automatically">
-              <SegmentedControl
-                value={String(settings.autosave)}
-                onChange={(v) => void update({ autosave: Number(v) })}
-                options={[
-                  { value: '5', label: '5s' },
-                  { value: '10', label: '10s' },
-                  { value: '30', label: '30s' },
-                  { value: '0', label: 'Manual' }
-                ]}
-              />
+            <Row
+              label="Auto-save"
+              desc={
+                settings.autosave === 0
+                  ? 'Notes are only saved when you press Save or Ctrl+S'
+                  : settings.autosave === INSTANT_AUTOSAVE
+                    ? 'Notes are saved instantly as you type'
+                    : `Notes are saved automatically every ${settings.autosave} seconds`
+              }
+            >
+              <div className="flex items-center gap-3">
+                {settings.autosave !== 0 && (
+                  <SegmentedControl
+                    value={String(settings.autosave)}
+                    onChange={(v) => void update({ autosave: Number(v) })}
+                    options={[
+                      { value: String(INSTANT_AUTOSAVE), label: 'Instant' },
+                      { value: '5', label: '5s' },
+                      { value: '10', label: '10s' },
+                      { value: '15', label: '15s' },
+                      { value: '30', label: '30s' }
+                    ]}
+                  />
+                )}
+                <Toggle checked={settings.autosave !== 0} onChange={(v) => void update({ autosave: v ? INSTANT_AUTOSAVE : 0 })} />
+              </div>
             </Row>
             <Row label="Show checklist progress" desc="Display completion bars on note cards">
               <Toggle checked={settings.showChecklistProgress} onChange={(v) => void update({ showChecklistProgress: v })} />
@@ -276,8 +293,8 @@ export function SettingsPage(): JSX.Element {
           <>
             <h2 className="text-xl font-bold">About</h2>
             <div className="rounded-2xl border border-app-border bg-app-surface p-6 text-center">
-              <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-3xl text-2xl text-white" style={{ background: 'linear-gradient(135deg, var(--app-accent), #22d3ee)' }}>
-                N
+              <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center">
+                <AppLogo size={64} rounded="rounded-2xl" />
               </div>
               <h3 className="text-lg font-bold">NotesApp</h3>
               <p className="mt-1 text-sm text-app-text-muted">Version {APP_VERSION}</p>
@@ -328,19 +345,9 @@ const APP_VERSION = '1.0.0'
 
 export function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }): JSX.Element {
   return (
-    <button
-      onClick={() => onChange(!checked)}
-      className={cx(
-        'relative h-6 w-11 rounded-full transition-colors',
-        checked ? 'bg-app-accent' : 'bg-app-surface-2'
-      )}
-    >
-      <span
-        className={cx(
-          'absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all',
-          checked ? 'left-[22px]' : 'left-0.5'
-        )}
-      />
-    </button>
+    <label className="uiverse-check">
+      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+      <span className="uiverse-check-mark" />
+    </label>
   )
 }

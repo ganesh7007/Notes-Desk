@@ -411,3 +411,505 @@ body {
 .recharts-tooltip-cursor {
   fill: var(--app-accent-soft);
 }
+
+/* =====================================================================
+   Uiverse components (adapted from ferlagher / Shammy2002 /
+   iconicchandu / satyamchaudharydev) — scoped to the classes below.
+   ===================================================================== */
+
+/* ------------------------- button (ferlagher) ------------------------- */
+
+.btn-primary {
+  position: relative;
+  overflow: hidden;
+  font-size: 1.2em;
+  padding: 0.7em 1.4em;
+  background-color: #bf0426;
+  text-decoration: none;
+  border: none;
+  border-radius: 0.5em;
+  color: #dedede;
+  box-shadow: 0.5em 0.5em 0.5em rgba(0, 0, 0, 0.3);
+  transition: box-shadow 0.15s ease, filter 0.15s ease, transform 0.1s ease;
+}
+
+.btn-primary::before {
+  position: absolute;
+  content: '';
+  height: 0;
+  width: 0;
+  top: 0;
+  left: 0;
+  background: linear-gradient(135deg, rgba(33, 33, 33, 1) 0%, rgba(33, 33, 33, 1) 50%, rgba(150, 4, 31, 1) 50%, rgba(191, 4, 38, 1) 60%);
+  border-radius: 0 0 0.5em 0;
+  box-shadow: 0.2em 0.2em 0.2em rgba(0, 0, 0, 0.3);
+  transition: 0.3s;
+}
+
+.btn-primary:hover::before {
+  width: 1.6em;
+  height: 1.6em;
+}
+
+.btn-primary:hover {
+  filter: brightness(1.08);
+}
+
+.btn-primary:active {
+  box-shadow: 0.2em 0.2em 0.3em rgba(0, 0, 0, 0.3);
+  transform: translate(0.1em, 0.1em);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* ------------------------- checkbox (Shammy2002) ------------------------- */
+
+.uiverse-check {
+  display: inline-block;
+  position: relative;
+  cursor: pointer;
+  font-size: 20px;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.uiverse-check input {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+  height: 0;
+  width: 0;
+}
+
+.uiverse-check-mark {
+  position: relative;
+  top: 0;
+  left: 0;
+  display: block;
+  height: 1.6em;
+  width: 1.6em;
+  border-radius: 38%;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow:
+    0 8px 20px rgba(0, 0, 0, 0.12),
+    0 2px 6px rgba(0, 0, 0, 0.08),
+    inset 0 1px 2px rgba(255, 255, 255, 0.5),
+    inset 0 -1px 2px rgba(0, 0, 0, 0.1);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.uiverse-check:hover input:not(:checked) ~ .uiverse-check-mark {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: translateY(-1px);
+  box-shadow:
+    0 12px 24px rgba(0, 0, 0, 0.15),
+    0 4px 8px rgba(0, 0, 0, 0.08),
+    inset 0 1.5px 3px rgba(255, 255, 255, 0.7);
+}
+
+.uiverse-check input:checked ~ .uiverse-check-mark {
+  transform: scale(1.22);
+  background: linear-gradient(145deg, #004cff 0%, #0e34b3 50%, hsl(217, 100%, 25%) 100%);
+  border-color: rgba(255, 255, 255, 0.45);
+  box-shadow:
+    0 12px 28px rgba(0, 81, 255, 0.45),
+    0 4px 10px rgba(0, 76, 255, 0),
+    inset 0 2px 4px rgba(255, 255, 255, 0.6),
+    inset 0 -2px 6px rgba(255, 255, 255, 0.35);
+}
+
+.uiverse-check-mark:after {
+  content: '';
+  position: absolute;
+  left: 0.53em;
+  top: 0.3em;
+  width: 0.32em;
+  height: 0.64em;
+  border: solid #ffffff;
+  border-width: 0 0.16em 0.16em 0;
+  border-radius: 2px;
+  transform: rotate(45deg) scale(0.3);
+  opacity: 0;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+  transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.uiverse-check input:checked ~ .uiverse-check-mark:after {
+  opacity: 1;
+  transform: rotate(45deg) scale(1);
+}
+
+.uiverse-check:active input ~ .uiverse-check-mark {
+  transform: scale(0.92);
+  transition: transform 0.15s ease-out;
+}
+
+/* ------------------------- note card (lined paper) ------------------------- */
+
+.pcard {
+  position: relative;
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+}
+
+/* The sheet is its own layer. The curl shadows below live on .pcard with
+   z-index:-1; if they shared an element with the paper, any transform on the
+   card (framer-motion layout/scale, or the hover lift) would create a stacking
+   context and paint them *over* the paper instead of behind it. */
+.pcard .pcard-paper {
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  min-height: 10.8rem;
+  /* 1.2rem top/bottom keeps the sheet on the ruled 1.2rem grid */
+  padding: 1.2rem 0.9rem 0.9rem 3.5rem;
+  border-radius: 10px;
+  border: 1px solid rgba(15, 23, 42, 0.09);
+  background-color: #fffefb;
+  background-image: linear-gradient(#f5f5f0 1.1rem, #ccc 1.2rem);
+  background-size: 100% 1.2rem;
+  line-height: 1.2rem;
+  color: #101215;
+  box-shadow: 0 8px 20px -8px rgba(0, 0, 0, 0.55);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* the two "page curl" shadows peeking out under the sheet — they sit slightly
+   *below* the sheet's bottom edge, otherwise the opaque paper hides them */
+.pcard::before,
+.pcard::after {
+  position: absolute;
+  content: '';
+  bottom: -5px;
+  width: 42%;
+  height: 10px;
+  box-shadow: 0 5px 14px rgba(0, 0, 0, 0.7);
+  z-index: -1;
+  transition: all 0.3s ease;
+}
+
+.pcard::before {
+  left: 15px;
+  transform: skew(-5deg) rotate(-5deg);
+}
+
+.pcard::after {
+  right: 15px;
+  transform: skew(5deg) rotate(5deg);
+}
+
+.pcard:hover .pcard-paper {
+  transform: translateY(-3px);
+  box-shadow: 0 16px 32px -12px rgba(0, 0, 0, 0.65);
+}
+
+.pcard:hover::before,
+.pcard:hover::after {
+  box-shadow: 0 2px 14px rgba(0, 0, 0, 0.4);
+}
+
+/* red notebook margin rule */
+.pcard .pcard-margin {
+  position: absolute;
+  left: 2.55rem;
+  top: 0;
+  height: 100%;
+  border-left: 1px solid #d88;
+  pointer-events: none;
+}
+
+/* × in the corner — opens the note menu */
+.pcard .pcard-dismiss {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: rgba(15, 23, 42, 0.06);
+  color: #5c6673;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  font-size: 1rem;
+  font-weight: 300;
+  line-height: 1;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.25s ease, background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.pcard:hover .pcard-dismiss,
+.pcard .pcard-dismiss:focus-visible {
+  opacity: 1;
+}
+
+.pcard .pcard-dismiss:hover {
+  background-color: #e04040;
+  border-color: #e04040;
+  color: #fff;
+}
+
+.pcard .pcard-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.pcard .pcard-title {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  padding-right: 1.6rem;
+}
+
+.pcard .pcard-title-text {
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.2rem;
+  color: #111;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+}
+
+.pcard .pcard-flags {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex-shrink: 0;
+  color: #6b7686;
+}
+
+.pcard .pcard-text {
+  margin: 0;
+  font-family: 'Segoe Script', 'Bradley Hand', cursive;
+  font-size: 0.95rem;
+  line-height: 1.2rem;
+  color: #111;
+  text-indent: 1rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.pcard .pcard-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0;
+  min-height: 1.2rem;
+  overflow: hidden;
+}
+
+.pcard .pcard-tag {
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: #5c6673;
+  background: rgba(15, 23, 42, 0.06);
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  padding: 0.14rem 0.45rem;
+  border-radius: 999px;
+}
+
+.pcard .pcard-foot {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: auto;
+  padding-top: 0.4rem;
+  border-top: 1px dashed rgba(15, 23, 42, 0.14);
+}
+
+.pcard .pcard-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  font-size: 0.62rem;
+  color: #79838f;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.pcard .pcard-meta .pcard-meta-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
+}
+
+/* the collection name gives up space first — the date/count stay readable */
+.pcard .pcard-meta .pcard-meta-text:first-child {
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+.pcard .pcard-meta-sep {
+  opacity: 0.6;
+  flex-shrink: 0;
+}
+
+.pcard .pcard-tools {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.pcard .pcard-tool,
+.pcard .pcard-go {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  cursor: pointer;
+  color: #5c6673;
+  background: rgba(15, 23, 42, 0.05);
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+}
+
+/* the small arrow that goes into the note */
+.pcard .pcard-go {
+  color: #fff;
+  background: var(--app-accent);
+  border-color: var(--app-accent);
+  box-shadow: 0 3px 10px -2px var(--app-accent-soft);
+}
+
+.pcard .pcard-tool:hover,
+.pcard .pcard-go:hover {
+  background: var(--app-accent);
+  border-color: var(--app-accent);
+  color: #fff;
+  transform: translateX(2px);
+}
+
+.pcard .pcard-go:hover {
+  filter: brightness(1.12);
+}
+
+.pcard .pcard-tool.is-on {
+  color: #b45309;
+  border-color: rgba(180, 83, 9, 0.35);
+}
+
+/* ------------------------- search bar (satyamchaudharydev) ------------------------- */
+
+.usearch {
+  --timing: 0.3s;
+  --height-of-input: 40px;
+  --border-height: 2px;
+  --input-bg: #fff;
+  --border-color: #2f2ee9;
+  --border-radius: 30px;
+  --after-border-radius: 1px;
+  position: relative;
+  width: 100%;
+  height: var(--height-of-input);
+  display: flex;
+  align-items: center;
+  padding-inline: 0.8em;
+  border-radius: var(--border-radius);
+  transition: border-radius 0.5s ease;
+  background: var(--input-bg, #fff);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
+}
+
+.usearch .usearch-btn {
+  border: none;
+  background: none;
+  color: #8b8ba7;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.usearch .usearch-input {
+  font-size: 0.9rem;
+  background-color: transparent;
+  width: 100%;
+  height: 100%;
+  padding-inline: 0.5em;
+  padding-block: 0.7em;
+  border: none;
+  color: #1c1c28;
+}
+
+.usearch .usearch-input::placeholder {
+  color: #8b8ba7;
+}
+
+.usearch .usearch-input:focus {
+  outline: none;
+}
+
+/* animated border on focus */
+.usearch:before {
+  content: '';
+  position: absolute;
+  background: var(--border-color);
+  transform: scaleX(0);
+  transform-origin: center;
+  width: 100%;
+  height: var(--border-height);
+  left: 0;
+  bottom: 0;
+  border-radius: 1px;
+  transition: transform var(--timing) ease;
+}
+
+.usearch:focus-within {
+  border-radius: var(--after-border-radius);
+}
+
+.usearch:focus-within:before {
+  transform: scale(1);
+}
+
+/* close button — shown when the input has text */
+.usearch .usearch-reset {
+  border: none;
+  background: none;
+  color: #8b8ba7;
+  opacity: 0;
+  visibility: hidden;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.usearch .usearch-input:not(:placeholder-shown) ~ .usearch-reset {
+  opacity: 1;
+  visibility: visible;
+}
+
+.usearch svg {
+  width: 17px;
+}
+

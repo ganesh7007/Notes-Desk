@@ -51,7 +51,9 @@ const api = {
     unlock: (noteId: string, secret: string): Promise<Note | null> =>
       ipcRenderer.invoke('notes:unlock', noteId, secret),
     unlockPermanent: (noteId: string, secret: string): Promise<Note | null> =>
-      ipcRenderer.invoke('notes:unlockPermanent', noteId, secret)
+      ipcRenderer.invoke('notes:unlockPermanent', noteId, secret),
+    resetLock: (noteId: string): Promise<Note | null> =>
+      ipcRenderer.invoke('notes:resetLock', noteId)
   },
   collections: {
     list: (): Promise<Collection[]> => ipcRenderer.invoke('collections:list'),

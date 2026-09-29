@@ -38,7 +38,7 @@ export function ImportPage(): JSX.Element {
   ]
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="mx-auto max-w-none space-y-6">
       <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
         <FileInput size={22} className="text-app-accent" /> Import & Export
       </h1>

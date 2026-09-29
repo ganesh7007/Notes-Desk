@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useAppStore } from '@/store/appStore'
 import { Splash } from '@/components/layout/Splash'
@@ -8,17 +8,23 @@ import { FloatingButton } from '@/components/layout/FloatingButton'
 import { Toasts } from '@/components/ui/Toasts'
 import { HomePage } from '@/pages/HomePage'
 import { NotesPage } from '@/pages/NotesPage'
-import { CollectionsPage } from '@/pages/CollectionsPage'
-import { CollectionPage } from '@/pages/CollectionPage'
-import { TagsPage } from '@/pages/TagsPage'
-import { TrashPage } from '@/pages/TrashPage'
-import { CalendarPage } from '@/pages/CalendarPage'
-import { StatsPage } from '@/pages/StatsPage'
-import { SettingsPage } from '@/pages/SettingsPage'
-import { BackupPage } from '@/pages/BackupPage'
-import { ImportPage } from '@/pages/ImportPage'
-import { EditorPage } from '@/pages/EditorPage'
 import { AppLock } from '@/components/security/AppLock'
+
+/*
+ * Every page except the two landing views is split into its own chunk. The
+ * editor alone drags in TipTap + highlight.js and Stats drags in recharts, so
+ * keeping them out of the initial bundle is what makes the window paint fast.
+ */
+const CollectionsPage = lazy(() => import('@/pages/CollectionsPage').then((m) => ({ default: m.CollectionsPage })))
+const CollectionPage = lazy(() => import('@/pages/CollectionPage').then((m) => ({ default: m.CollectionPage })))
+const TagsPage = lazy(() => import('@/pages/TagsPage').then((m) => ({ default: m.TagsPage })))
+const TrashPage = lazy(() => import('@/pages/TrashPage').then((m) => ({ default: m.TrashPage })))
+const CalendarPage = lazy(() => import('@/pages/CalendarPage').then((m) => ({ default: m.CalendarPage })))
+const StatsPage = lazy(() => import('@/pages/StatsPage').then((m) => ({ default: m.StatsPage })))
+const SettingsPage = lazy(() => import('@/pages/SettingsPage').then((m) => ({ default: m.SettingsPage })))
+const BackupPage = lazy(() => import('@/pages/BackupPage').then((m) => ({ default: m.BackupPage })))
+const ImportPage = lazy(() => import('@/pages/ImportPage').then((m) => ({ default: m.ImportPage })))
+const EditorPage = lazy(() => import('@/pages/EditorPage').then((m) => ({ default: m.EditorPage })))
 
 export default function App(): JSX.Element {
   const { ready, init, settings } = useAppStore()
@@ -79,32 +85,42 @@ export default function App(): JSX.Element {
     <div className="flex h-screen flex-col overflow-hidden">
       {!isEditor && <TopBar />}
       <main id="content-scroll" className="relative flex-1 overflow-y-auto pb-28">
-        <div className="mx-auto max-w-6xl px-5 pt-5">
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/notes" element={<NotesPage />} />
-            <Route path="/collections" element={<CollectionsPage />} />
-            <Route path="/collections/:id" element={<CollectionPage />} />
-            <Route path="/favorites" element={<NotesPage preset="favorites" />} />
-            <Route path="/pinned" element={<NotesPage preset="pinned" />} />
-            <Route path="/locked" element={<NotesPage preset="locked" />} />
-            <Route path="/archived" element={<NotesPage preset="archived" />} />
-            <Route path="/tags" element={<TagsPage />} />
-            <Route path="/trash" element={<TrashPage />} />
-            <Route path="/calendar" element={<CalendarPage />} />
-            <Route path="/stats" element={<StatsPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/backup" element={<BackupPage />} />
-            <Route path="/import" element={<ImportPage />} />
-            <Route path="/notes/:id" element={<EditorPage />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+        <div className="mx-auto max-w-none px-5 pt-5">
+          <Suspense fallback={<RouteFallback />}>
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/notes" element={<NotesPage />} />
+              <Route path="/collections" element={<CollectionsPage />} />
+              <Route path="/collections/:id" element={<CollectionPage />} />
+              <Route path="/favorites" element={<NotesPage preset="favorites" />} />
+              <Route path="/pinned" element={<NotesPage preset="pinned" />} />
+              <Route path="/locked" element={<NotesPage preset="locked" />} />
+              <Route path="/archived" element={<NotesPage preset="archived" />} />
+              <Route path="/tags" element={<TagsPage />} />
+              <Route path="/trash" element={<TrashPage />} />
+              <Route path="/calendar" element={<CalendarPage />} />
+              <Route path="/stats" element={<StatsPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/backup" element={<BackupPage />} />
+              <Route path="/import" element={<ImportPage />} />
+              <Route path="/notes/:id" element={<EditorPage />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
         </div>
       </main>
       {!isEditor && <BottomNav />}
       {!isEditor && <FloatingButton />}
       <Toasts />
       <AppLock />
+    </div>
+  )
+}
+
+function RouteFallback(): JSX.Element {
+  return (
+    <div className="flex h-[60vh] items-center justify-center">
+      <div className="h-6 w-6 animate-spin rounded-full border-2 border-app-accent border-t-transparent" />
     </div>
   )
 }

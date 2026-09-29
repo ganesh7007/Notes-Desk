@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { StickyNote } from 'lucide-react'
+import { AppLogo } from '@/components/layout/AppLogo'
 
 export function Splash(): JSX.Element {
   return (
@@ -8,10 +8,12 @@ export function Splash(): JSX.Element {
         initial={{ scale: 0.7, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: 'spring', stiffness: 200, damping: 16 }}
-        className="flex h-20 w-20 items-center justify-center rounded-3xl"
-        style={{ background: 'linear-gradient(135deg, var(--app-accent), #22d3ee)' }}
       >
-        <StickyNote size={38} className="text-white" />
+        <AppLogo
+          size={84}
+          rounded="rounded-3xl"
+          className="shadow-[0_8px_40px_var(--app-accent-soft)]"
+        />
       </motion.div>
       <div className="text-xl font-bold tracking-tight">
         Notes<span style={{ color: 'var(--app-accent)' }}>App</span>

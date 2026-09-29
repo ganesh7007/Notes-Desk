@@ -7,10 +7,12 @@ import { dirs, DB_PATH, getDb, closeDb } from './db'
 import { addBackupRecord, deleteBackupRecord, pruneBackups } from './repositories'
 
 const requireFn = createRequire(__filename)
-const archiver = requireFn('archiver') as (
-  format: string,
-  options?: Record<string, unknown>
-) => Archiver
+
+// Loaded on demand: backups run in the background, so archiver should not sit
+// in the module graph during startup.
+function loadArchiver(): (format: string, options?: Record<string, unknown>) => Archiver {
+  return requireFn('archiver') as (format: string, options?: Record<string, unknown>) => Archiver
+}
 
 export async function createBackup(kind: 'manual' | 'automatic' = 'manual'): Promise<{ path: string; size: number }> {
   const db = getDb()
@@ -21,7 +23,7 @@ export async function createBackup(kind: 'manual' | 'automatic' = 'manual'): Pro
 
   await new Promise<void>((resolve, reject) => {
     const output = fs.createWriteStream(destPath)
-    const archive = archiver('zip', { zlib: { level: 9 } })
+    const archive = loadArchiver()('zip', { zlib: { level: 9 } })
     output.on('close', resolve)
     archive.on('error', reject)
     archive.pipe(output)

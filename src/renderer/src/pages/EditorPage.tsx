@@ -27,15 +27,17 @@ import {
   Smile,
   Star,
   StickyNote,
+  Timer,
   Trash2,
   Undo2,
   Upload
 } from 'lucide-react'
 import type { Editor } from '@tiptap/react'
+import { NodeSelection } from '@tiptap/pm/state'
+import { INSTANT_AUTOSAVE } from '@shared/types'
 import type { Note, NoteColor, TipNode } from '@shared/types'
 import { tiptapJsonToPlainText } from '@shared/converters'
 import { buildExtensions } from '@/components/editor/extensions'
-import { RendererImageExtension } from '@/components/editor/RendererImage'
 import { FormatPanel } from '@/components/editor/FormatPanel'
 import { ReminderModal } from '@/components/editor/ReminderModal'
 import { LockModal } from '@/components/editor/LockModal'
@@ -96,16 +98,14 @@ export function EditorPage(): JSX.Element {
 
   const noteRef = useRef<Note | null>(null)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Set to true when the note is being deleted so the unmount flush doesn't re-save a trashed note.
+  const skipFlushRef = useRef(false)
 
   const editor = useEditor({
-    extensions: useMemo(() => {
-      const base = buildExtensions(settings?.editorFont ?? 'Inter', settings?.editorFontSize ?? 17) as never[]
-      const filtered = base.filter((ext) => {
-        const name = (ext as { name?: string }).name
-        return name !== 'image'
-      })
-      return [...filtered, RendererImageExtension]
-    }, []),
+    extensions: useMemo(
+      () => buildExtensions(settings?.editorFont ?? 'Inter', settings?.editorFontSize ?? 17) as never[],
+      []
+    ),
     editorProps: {
       attributes: { class: 'tiptap focus:outline-none' },
       handlePaste: (_view, event) => handleClipboardPaste(event),
@@ -120,6 +120,8 @@ export function EditorPage(): JSX.Element {
 
   useEffect(() => {
     if (!id) return
+    // Drop any pending save from a previously open note when switching notes.
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
     const paramsLocked = params.get('locked') === '1'
     void loadNote(id, paramsLocked)
     void window.api.tags.all().then(setAllTags)
@@ -192,7 +194,11 @@ export function EditorPage(): JSX.Element {
 
   useEffect(() => {
     return () => {
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current)
+        // Flush pending changes when leaving the editor so nothing typed is lost.
+        if (!skipFlushRef.current) void doSaveRef.current()
+      }
     }
   }, [])
 
@@ -241,7 +247,10 @@ export function EditorPage(): JSX.Element {
 
   const scheduleSave = (): void => {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
-    const delay = settings?.autosave && settings.autosave > 0 ? settings.autosave * 1000 : 8000
+    // Manual mode (autosave === 0) means no automatic saves — only Save / Ctrl+S / blur save.
+    if (!settings?.autosave) return
+    // Instant mode uses a short debounce so saves feel immediate while typing.
+    const delay = settings.autosave === INSTANT_AUTOSAVE ? 250 : settings.autosave * 1000
     saveTimerRef.current = setTimeout(() => void doSave(), delay)
   }
 
@@ -261,12 +270,47 @@ export function EditorPage(): JSX.Element {
     }
   }
 
+  // Keep the latest save function available to the Ctrl+S listener without rebinding it on every render.
+  const doSaveRef = useRef<() => Promise<void>>(async () => {})
+  doSaveRef.current = doSave
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent): void => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault()
+        void doSaveRef.current()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
   const insertImage = (src: string): void => {
-    editor?.chain().focus().setImage({ src }).run()
+    if (!editor) return
+    // An image is a void node, so it cannot hold the caret. Insert an empty
+    // paragraph after it and leave the cursor there — otherwise "add image, then
+    // type" would silently drop the text.
+    editor
+      .chain()
+      .focus()
+      .insertContent([{ type: 'image', attrs: { src } }, { type: 'paragraph' }])
+      .run()
   }
 
   const insertText = (text: string): void => {
-    editor?.chain().focus().insertContent(text).run()
+    if (!editor) return
+    const { selection } = editor.state
+    // When an image is selected the selection is a node selection, and inserting
+    // text there would replace the image. Add a paragraph after it instead.
+    if (selection instanceof NodeSelection) {
+      editor
+        .chain()
+        .focus()
+        .insertContentAt(selection.to, [{ type: 'paragraph', content: [{ type: 'text', text }] }])
+        .run()
+      return
+    }
+    editor.chain().focus().insertContent(text).run()
   }
 
   const insertChecklist = (): void => {
@@ -425,6 +469,7 @@ export function EditorPage(): JSX.Element {
 
   const deleteNote = async (): Promise<void> => {
     if (!id) return
+    skipFlushRef.current = true
     await window.api.notes.softDelete([id])
     toast('Note moved to trash')
     navigate('/notes')
@@ -462,8 +507,16 @@ export function EditorPage(): JSX.Element {
     <div className="flex h-screen flex-col">
       {/* top bar */}
       <div className="glass z-40 border-b border-app-border">
-        <div className="mx-auto flex h-14 max-w-4xl items-center gap-1.5 px-4">
-          <button onClick={() => navigate(-1)} className="flex h-9 w-9 items-center justify-center rounded-xl text-app-text-muted transition hover:bg-app-surface-2 hover:text-app-text" title="Back">
+        <div className="mx-auto flex h-14 max-w-none items-center gap-1.5 px-4">
+          <button
+            onClick={() => {
+              // Save any pending changes immediately before going back to the folder.
+              if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+              void doSaveRef.current().finally(() => navigate(-1))
+            }}
+            className="flex h-9 w-9 items-center justify-center rounded-xl text-app-text-muted transition hover:bg-app-surface-2 hover:text-app-text"
+            title="Back"
+          >
             <ArrowLeft size={18} />
           </button>
           <button onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()} className="flex h-9 w-9 items-center justify-center rounded-xl text-app-text-muted transition hover:bg-app-surface-2 disabled:opacity-30" title="Undo">
@@ -477,6 +530,13 @@ export function EditorPage(): JSX.Element {
           </button>
           <span className={cx('ml-1 hidden text-[11px] transition sm:block', saveState === 'saved' ? 'text-app-success' : saveState === 'dirty' ? 'text-app-warning' : 'text-app-text-muted')}>
             {saveLabel}
+          </span>
+          <span
+            className="ml-1 hidden shrink-0 items-center gap-1 rounded-md bg-app-surface-2 px-2 py-1 text-[10px] font-medium text-app-text-muted md:inline-flex"
+            title="Auto-save is configured in Settings → Editor"
+          >
+            <Timer size={11} />
+            {settings && settings.autosave !== 0 ? (settings.autosave === INSTANT_AUTOSAVE ? 'Auto-save: instant' : `Auto-save ${settings.autosave}s`) : 'Manual save'}
           </span>
           <div className="ml-auto flex items-center gap-1">
             {note?.isPinned && <Pin size={14} className="fill-amber-400 text-amber-400" />}
@@ -502,12 +562,12 @@ export function EditorPage(): JSX.Element {
       {/* editor */}
       <div className="relative flex-1 overflow-y-auto pb-32">
         {checklist.total > 0 && (
-          <div className="mx-auto mt-3 flex max-w-3xl items-center gap-2 px-4">
+          <div className="mx-auto mt-3 flex max-w-none items-center gap-2 px-4">
             <div className="progress-bar flex-1"><span style={{ width: `${(checklist.done / checklist.total) * 100}%` }} /></div>
             <span className="text-[11px] text-app-text-muted">{Math.round((checklist.done / checklist.total) * 100)}% complete</span>
           </div>
         )}
-        <div className="editor-shell mx-auto max-w-3xl px-5 pb-8 pt-5">
+        <div className="editor-shell mx-auto max-w-none px-5 pb-8 pt-5">
           <input
             value={title}
             onChange={(e) => {
@@ -540,7 +600,7 @@ export function EditorPage(): JSX.Element {
       {/* bottom toolbar */}
       {!note?.isLocked || unlocked ? (
         <div className="glass fixed inset-x-0 bottom-0 z-40 border-t border-app-border">
-          <div className="mx-auto flex max-w-4xl items-center gap-1 overflow-x-auto px-3 py-2 no-scrollbar">
+          <div className="mx-auto flex max-w-none items-center gap-1 overflow-x-auto px-3 py-2 no-scrollbar">
             <ToolButton title="Text" active={showFormat} onClick={() => setShowFormat((s) => !s)}><StickyNote size={17} /></ToolButton>
             <ToolButton title="Checklist" onClick={insertChecklist}><CheckSquare size={17} /></ToolButton>
             <ToolButton title="Table" onClick={insertTable}><FilePlus2 size={17} /></ToolButton>
@@ -596,7 +656,24 @@ export function EditorPage(): JSX.Element {
 
       <ReminderModal open={reminderOpen} noteId={id!} current={note?.reminderAt ?? null} onClose={() => setReminderOpen(false)} onSaved={() => void window.api.notes.get(id!).then((n) => n && setNote(n))} />
       <LockModal open={lockOpen} noteId={id!} alreadyLocked={Boolean(note?.isLocked)} onClose={() => setLockOpen(false)} onDone={() => void window.api.notes.get(id!).then((n) => { if (n) { setNote(n); editor.commands.setContent(parseContent(n.content)) } })} />
-      <UnlockModal open={unlockOpen} title={note?.title || 'Locked note'} lockType={note?.lockType ?? null} onClose={() => { if (unlockOpen) { if (unlocked) setUnlockOpen(false); else navigate(-1) } }} onUnlocked={(c) => { setUnlockContent(c); setUnlockOpen(false) }} />
+      <UnlockModal
+        open={unlockOpen}
+        noteId={id!}
+        title={note?.title || 'Locked note'}
+        lockType={note?.lockType ?? null}
+        onClose={() => {
+          if (unlockOpen) {
+            if (unlocked) setUnlockOpen(false)
+            else navigate(-1)
+          }
+        }}
+        onUnlocked={(c) => {
+          setUnlockContent(c)
+          setUnlockOpen(false)
+          // Refresh the note so the lock badge/state reflect the DB (e.g. after recovery unlock).
+          void window.api.notes.get(id!).then((n) => n && setNote(n))
+        }}
+      />
       <CollectionMoveModal open={moveOpen} noteIds={[id!]} currentCollectionId={note?.collectionId} onClose={() => setMoveOpen(false)} onDone={() => void window.api.notes.get(id!).then((n) => { if (n) { setNote(n); void refreshCollections() } })} />
       <OcrModal open={ocrOpen} noteId={id!} initialSrc={ocrSrc} onClose={() => setOcrOpen(false)} onInsertText={insertText} />
       <VoiceRecorderModal open={voiceOpen} noteId={id!} onClose={() => setVoiceOpen(false)} onTranscript={insertText} />
