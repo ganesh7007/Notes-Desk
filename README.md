@@ -1,6 +1,12 @@
+<div align="center">
+
+<img src="./src/renderer/src/assets/logo.png" alt="NotesApp Logo" width="220" style="border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);" />
+
 # 📝 NotesApp (Notes-Desk)
 
 > **A premium, offline-first desktop note-taking studio** engineered for speed, privacy, and seamless multimedia journaling. Built with Electron, React, TypeScript, and local SQLite WebAssembly.
+
+</div>
 
 ---
 
