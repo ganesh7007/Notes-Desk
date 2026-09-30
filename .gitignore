@@ -7,3 +7,5 @@ resources/tesseract/
 .DS_Store
 Thumbs.db
 .vite/
+.freebuff/
+tools/

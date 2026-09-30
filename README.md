@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="./src/renderer/src/assets/logo.png" alt="NotesApp Logo" width="220" style="border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);" />
+<img src="./src/renderer/src/assets/logo.png" alt="NotesApp Logo" width="140" style="border-radius: 28px; box-shadow: 0 8px 30px rgba(0,0,0,0.18);" />
 
 # 📝 NotesApp (Notes-Desk)
 
