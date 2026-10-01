@@ -52,6 +52,8 @@
 │ 🔒 Lock   │  │ 🟢 Work      │  │ 🔵 Personal  │  │ 🟣 Ideas     │      │
 │           │  └──────────────┘  └──────────────┘  └──────────────┘      │
 └───────────┴────────────────────────────────────────────────────────────┘
+<img width="1918" height="1017" alt="image" src="https://github.com/user-attachments/assets/fad678f1-5ab3-43d8-96d3-7becde7ebed6" />
+
 ```
 
 ---
