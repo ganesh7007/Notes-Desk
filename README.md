@@ -38,21 +38,13 @@
 
 ## 📸 Screenshots & Architecture Tour
 
-```
-┌────────────────────────────────────────────────────────────────────────┐
-│  NotesApp Desktop                                                      │
-├───────────┬────────────────────────────────────────────────────────────┤
-│ 📂 Home   │  Good morning, Ganesh                                      │
-│ 📝 Notes  │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  │
-│ 📁 Folders│  [ Collections ]  [ 📌 Pinned ]  [ ⭐ Favorites ]          │
-│ 🏷️ Tags   │                                                            │
-│ 📅 Cal    │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
-│ 📊 Stats  │  │ Meeting Note │  │ Project Plan │  │ 🎙️ Voice Memo│      │
-│ ⚙️ Config │  │ #work #dev   │  │ 75% Tasks    │  │ 02:45 Audio  │      │
-│ 🔒 Lock   │  │ 🟢 Work      │  │ 🔵 Personal  │  │ 🟣 Ideas     │      │
-│           │  └──────────────┘  └──────────────┘  └──────────────┘      │
-└───────────┴────────────────────────────────────────────────────────────┘
-```
+<div align="center">
+  <img src="./docs/screenshots/dashboard.png" alt="NotesApp Dashboard & Recent Notes" width="100%" style="border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.3);" />
+  <p align="center"><em>NotesApp Home Dashboard featuring sticky card notes, quick navigation, and instant search</em></p>
+  <br />
+  <img src="./docs/screenshots/editor.png" alt="NotesApp TipTap Rich Text Editor & Toolbar" width="100%" style="border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.3);" />
+  <p align="center"><em>Distraction-free Rich Text Editor with floating formatting toolbar and multimedia action bar</em></p>
+</div>
 
 ---
 
@@ -112,6 +104,8 @@
 
 ```text
 Notes-Desk/
+├── docs/                     # Documentation and screenshots
+│   └── screenshots/          # High-resolution UI captures
 ├── resources/                # App icons (.ico, .png) and Tesseract OCR model assets
 ├── scripts/                  # Build scripts, smoke tests, and asset copying helpers
 │   ├── copy-assets.mjs
